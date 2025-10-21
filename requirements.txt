@@ -1,11 +1,14 @@
 flask
 flask-cors
+gunicorn
 transformers
 torch
-newspaper3k
 pandas
 numpy
-requests
+newspaper3k
 beautifulsoup4
+requests
 lxml
 pillow
+scikit-learn
+nltk
