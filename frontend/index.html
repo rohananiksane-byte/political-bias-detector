@@ -913,13 +913,14 @@
             btnText.textContent = 'Analyzing...';
             
             try {
-                const response = await fetch('https://political-bias-detector-ifpe.onrender.com', {
+                const response = await fetch('https://political-bias-detector-ifpe.onrender.com/api/analyze', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({ content: content })
                 });
+
                 
                 const data = await response.json();
                 
@@ -957,7 +958,7 @@
                         • Open Terminal in VS Code<br>
                         • Activate environment: <code>venv\\Scripts\\activate</code><br>
                         • Run: <code>python src/api.py</code><br>
-                        • Wait for "API running at http://localhost:5000"<br>
+                        • Wait for "API running at https://political-bias-detector-ifpe.onrender.com/"<br>
                         • Then try again
                     </div>
                 </div>
