@@ -9,10 +9,3 @@ requests
 beautifulsoup4
 lxml
 pillow
-
-pip freeze > requirements.txt
-```
-
-2. **Create `Procfile` (no extension) in project root:**
-```
-web: python src/api.py
