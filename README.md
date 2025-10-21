@@ -1,4 +1,4 @@
-# 🎯 Political Bias Detector
+# 🎯 ML Political Bias Detector
 
 AI-powered system to detect political bias in news articles using contextual analysis and machine learning.
 
@@ -171,7 +171,7 @@ This is an educational project, but suggestions are welcome!
 
 ## 📄 License
 
-MIT License - see /LICENSE file for details
+MIT License - see [LICENSE](./LICENSE) file for details
 
 ## 👨‍💻 Author
 
