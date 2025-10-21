@@ -54,6 +54,7 @@ political-bias-detector/
 │   ├── api.py                 # Flask REST API
 │   ├── bias_analyzer.py       # Core ML model (Version 3)
 │   └── bias_analyzer_v2.py    # Contextual version
+|   └── bias_analyzer_v1.py    # Basic term analysis version
 ├── notebooks/
 │   └── 01_bias_analysis.ipynb # Jupyter analysis
 ├── requirements.txt
