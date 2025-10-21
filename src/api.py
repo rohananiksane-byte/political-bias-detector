@@ -1,49 +1,65 @@
 """
 Flask API for Political Bias Detection
-Memory-optimized for Render (512MB free instance)
+Optimized for Render deployment
 """
 
 import os
 import datetime
 import gc
+import logging
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from bias_analyzer import EnhancedContextualAnalyzer as BiasAnalyzer
-import logging
 
+# -------------------------------------------------------------------------
+# Flask App Setup
+# -------------------------------------------------------------------------
 app = Flask(__name__)
-
-# Enable CORS for all origins
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 # Logging setup
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Analyzer global (lazy-loaded)
-analyzer = None
+# -------------------------------------------------------------------------
+# Analyzer Initialization (Preload once at startup)
+# -------------------------------------------------------------------------
+print("🚀 Initializing Political Bias Analyzer...")
 
-# Max allowed content length to prevent memory blowup
-MAX_CONTENT_LENGTH = 3000  # characters
+try:
+    analyzer = BiasAnalyzer(verbose=False)
+    print("✅ Analyzer successfully loaded at startup.")
+except Exception as e:
+    analyzer = None
+    print("❌ Failed to load analyzer at startup:", e)
 
+# -------------------------------------------------------------------------
+# Constants
+# -------------------------------------------------------------------------
+MAX_CONTENT_LENGTH = 3000  # limit text size to prevent memory overuse
+
+# -------------------------------------------------------------------------
+# Helper Functions
+# -------------------------------------------------------------------------
 def get_analyzer():
-    """Lazy-load the analyzer to save memory."""
+    """Lazy-load or reuse the analyzer."""
     global analyzer
     if analyzer is None:
-        logger.info("Initializing analyzer...")
+        logger.info("Analyzer not loaded — attempting lazy initialization...")
         try:
-            # Optionally, switch to a smaller model to reduce memory
-            # analyzer = BiasAnalyzer(model_name='distilbert-base-uncased-finetuned-sst-2', verbose=False)
             analyzer = BiasAnalyzer(verbose=False)
-            logger.info("Analyzer initialized successfully")
+            logger.info("✅ Analyzer initialized successfully (lazy-load).")
         except Exception as e:
-            logger.error(f"Failed to initialize analyzer: {str(e)}")
+            logger.error(f"❌ Failed to initialize analyzer lazily: {str(e)}")
             raise
     return analyzer
 
+# -------------------------------------------------------------------------
+# Routes
+# -------------------------------------------------------------------------
 @app.route('/')
 def home():
-    """API info page."""
+    """Root endpoint — shows API info."""
     return jsonify({
         'name': 'Political Bias Detection API',
         'version': '1.0',
@@ -61,15 +77,15 @@ def health():
     """Health check endpoint."""
     return jsonify({
         'status': 'healthy',
-        'timestamp': str(datetime.datetime.now()),
-        'analyzer_loaded': analyzer is not None
+        'analyzer_loaded': analyzer is not None,
+        'timestamp': str(datetime.datetime.utcnow())
     })
 
 @app.route('/api/analyze', methods=['POST', 'OPTIONS'])
 def analyze():
     """Analyze content for political bias."""
     if request.method == 'OPTIONS':
-        return '', 204
+        return '', 204  # preflight CORS
 
     try:
         data = request.get_json()
@@ -77,36 +93,31 @@ def analyze():
             return jsonify({'success': False, 'error': 'Missing content field'}), 400
 
         content = data['content'].strip()
-        if len(content) == 0:
+        if not content:
             return jsonify({'success': False, 'error': 'Content cannot be empty'}), 400
 
-        # Enforce max content length
         if len(content) > MAX_CONTENT_LENGTH:
             return jsonify({
                 'success': False,
                 'error': f'Content too long ({len(content)} chars). Max allowed is {MAX_CONTENT_LENGTH}.'
             }), 400
 
-        # Lazy-load analyzer
         analyzer_instance = get_analyzer()
+        logger.info(f"Analyzing content (length: {len(content)} chars)...")
 
-        # Run analysis
-        logger.info(f"Analyzing content (length: {len(content)} chars)")
         result = analyzer_instance.analyze(content)
 
         if 'error' in result:
             return jsonify({'success': False, 'error': result['error']}), 400
 
-        logger.info(f"Analysis complete - Score: {result.get('bias_score')}")
+        logger.info(f"✅ Analysis complete - Bias Score: {result.get('bias_score')}")
 
-        # Clean up memory
-        gc.collect()
-
+        gc.collect()  # memory cleanup
         return jsonify({'success': True, 'data': result}), 200
 
     except Exception as e:
         logger.error(f"Error during analysis: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': 'An error occurred during analysis. Please try again.'}), 500
+        return jsonify({'success': False, 'error': 'Internal error during analysis'}), 500
 
 @app.errorhandler(404)
 def not_found(error):
@@ -121,14 +132,17 @@ def internal_error(error):
     logger.error(f"Internal server error: {str(error)}", exc_info=True)
     return jsonify({'success': False, 'error': 'Internal server error'}), 500
 
+# -------------------------------------------------------------------------
+# App Entry Point
+# -------------------------------------------------------------------------
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     debug_mode = not bool(os.environ.get('PORT'))
 
     print("\n" + "="*60)
-    print("🚀 STARTING BIAS DETECTION API")
+    print("🚀 STARTING POLITICAL BIAS DETECTION API")
     print("="*60)
-    print(f"📍 API running on port: {port}")
+    print(f"📍 Running on port: {port}")
     print("🌐 PRODUCTION mode" if os.environ.get('PORT') else "💻 LOCAL mode")
     print("="*60 + "\n")
 
