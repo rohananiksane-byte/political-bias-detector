@@ -2,7 +2,6 @@
 Flask API for Bias Detection
 Provides REST API endpoints for the bias analyzer.
 """
-
 import os
 import datetime
 from flask import Flask, request, jsonify
@@ -29,11 +28,16 @@ logger = logging.getLogger(__name__)
 analyzer = None
 
 def get_analyzer():
+    """Lazy load analyzer to avoid initialization on module import."""
     global analyzer
     if analyzer is None:
         logger.info("Initializing analyzer...")
-        analyzer = BiasAnalyzer(verbose=False)
-        logger.info("Analyzer initialized successfully")
+        try:
+            analyzer = BiasAnalyzer(verbose=False)
+            logger.info("Analyzer initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize analyzer: {str(e)}")
+            raise
     return analyzer
 
 @app.route('/')
@@ -47,10 +51,11 @@ def home():
             '/api/analyze': 'POST - Analyze text or URL',
             '/api/health': 'GET - Check API status'
         },
-        'documentation': 'https://github.com/YOUR-USERNAME/political-bias-detector'
+        'documentation': 'https://github.com/rohananiksane-byte/political-bias-detector'
     })
 
 @app.route('/api/health')
+@app.route('/health')  # Add alternative route without /api prefix
 def health():
     """Health check endpoint."""
     return jsonify({
@@ -59,7 +64,7 @@ def health():
         'analyzer_loaded': analyzer is not None
     })
 
-@app.route('/api/analyze', methods=['POST'])
+@app.route('/api/analyze', methods=['POST', 'OPTIONS'])  # Added OPTIONS for CORS preflight
 def analyze():
     """
     Analyze content for political bias.
@@ -69,6 +74,10 @@ def analyze():
         "content": "text or URL to analyze"
     }
     """
+    # Handle preflight OPTIONS request
+    if request.method == 'OPTIONS':
+        return '', 204
+    
     try:
         data = request.get_json()
         
@@ -88,8 +97,8 @@ def analyze():
         
         # Get analyzer and run analysis
         logger.info(f"Analyzing content (length: {len(content)} chars)")
-        analyzer = get_analyzer()
-        result = analyzer.analyze(content)
+        analyzer_instance = get_analyzer()
+        result = analyzer_instance.analyze(content)
         
         if 'error' in result:
             return jsonify({
@@ -105,11 +114,29 @@ def analyze():
         }), 200
         
     except Exception as e:
-        logger.error(f"Error during analysis: {str(e)}")
+        logger.error(f"Error during analysis: {str(e)}", exc_info=True)
         return jsonify({
             'success': False,
             'error': 'An error occurred during analysis. Please try again.'
         }), 500
+
+@app.errorhandler(404)
+def not_found(error):
+    """Handle 404 errors."""
+    return jsonify({
+        'success': False,
+        'error': 'Endpoint not found',
+        'available_endpoints': ['/api/analyze', '/api/health', '/health', '/']
+    }), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    """Handle 500 errors."""
+    logger.error(f"Internal server error: {str(error)}", exc_info=True)
+    return jsonify({
+        'success': False,
+        'error': 'Internal server error'
+    }), 500
 
 if __name__ == '__main__':
     # Get port from environment variable (for Render) or default to 5000
