@@ -12,3 +12,4 @@ lxml
 pillow
 scikit-learn
 nltk
+lxml_html_clean

@@ -6,7 +6,7 @@ import os
 import datetime
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from .bias_analyzer import EnhancedContextualAnalyzer as BiasAnalyzer
+from .bias_analyzer import EnhancedContextualAnalyzer as BiasAnalyzer  
 import logging
 
 app = Flask(__name__)
