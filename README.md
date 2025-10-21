@@ -33,8 +33,8 @@ This project analyzes news articles and text content to detect political bias on
 ### Key Innovation: Context-Aware Detection
 
 Unlike simple keyword counting, this system understands context:
-- ✅ "Support LGBTQ rights" → Left-leaning
-- ✅ "Ban LGBTQ rights" → Right-leaning  
+- ✅ "Support environmental rights" → Left-leaning
+- ✅ "Ban environmental rights" → Right-leaning  
 
 The AI analyzes sentence-level sentiment to determine true political stance.
 
@@ -171,65 +171,16 @@ This is an educational project, but suggestions are welcome!
 
 ## 📄 License
 
-MIT License - see LICENSE file for details
+MIT License - see /LICENSE file for details
 
 ## 👨‍💻 Author
 
-**[Your Name]**  
-First Year Computer Science Student  
-[Your University]
+**Rohan Sane**  
+First Year Systems Design Engineering  
+University of Waterloo
 
-[LinkedIn](#) | [Portfolio](#) | [Email](mailto:your.email@example.com)
+[LinkedIn](http://www.linkedin.com/in/rohanasane) | [Email](rsane@uwaterloo.ca)
 
-## 🙏 Acknowledgments
 
-- Hugging Face for transformer models
-- AllSides for media bias ratings
-- Flask and Python community
-
----
 
 ⭐ **Star this repo if you found it helpful!**
-```
-
-5. **Replace placeholders:**
-   - `YOUR-USERNAME` with your GitHub username
-   - `[Your Name]` with your name
-   - Update links at the bottom
-   - Update the live demo URLs with your actual URLs
-
-6. **Commit changes** (green button at bottom)
-
----
-
-## 🎓 **PHASE 7: Update Your Resume (5 minutes)**
-
-### **Projects Section:**
-```
-Political Bias Detection System | Python, Flask, Transformers, REST API
-October 2025
-- Deployed full-stack ML application analyzing political bias in news articles
-- Live Demo: https://political-bias-detector.netlify.app
-- Implemented AI-powered contextual analysis using DistilBERT transformer model
-- Achieved 85-90% accuracy through hybrid approach combining NLP and sentiment analysis
-- Built REST API serving 1000+ requests with <2s response time
-- GitHub: github.com/YOUR-USERNAME/political-bias-detector (100+ lines of code)
-```
-
----
-
-## 🔗 **Your Final Links for Resume/LinkedIn:**
-
-**Live Application:**
-```
-https://political-bias-detector.netlify.app
-```
-
-**GitHub Repository:**
-```
-https://github.com/YOUR-USERNAME/political-bias-detector
-```
-
-**API Documentation:**
-```
-https://political-bias-api.onrender.com
