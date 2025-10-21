@@ -4,9 +4,9 @@ AI-powered system to detect political bias in news articles using contextual ana
 
 ## 🚀 Live Demo
 
-**Try it now:** [https://political-bias-detector.netlify.app](https://political-bias-detector.netlify.app)
+**Try it now:** [https://ml-political-bias-detector.onrender.com]
 
-**API Endpoint:** [https://political-bias-api.onrender.com](https://political-bias-api.onrender.com)
+**API Endpoint:** [https://political-bias-detector-ifpe.onrender.com/]
 
 ## 📊 Overview
 
