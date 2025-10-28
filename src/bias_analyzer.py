@@ -1,64 +1,40 @@
 """
 Enhanced Contextual Bias Analyzer with AI Sentiment Detection
 Uses transformer models to understand context around political keywords
-
-Author: Rohan Aniksane
-Date: October 2025
 """
 
+import pandas as pd
+import numpy as np
+from transformers import pipeline
 import warnings
-warnings.filterwarnings('ignore')
-
-# Standard library imports
+from newspaper import Article
 import re
 from datetime import datetime
 
-# Third-party imports with error handling
-try:
-    import numpy as np
-    from transformers import pipeline
-    from newspaper import Article
-except ImportError as e:
-    print(f"⚠️ Missing dependency: {e}")
-    print("Install with: pip install transformers newspaper3k numpy")
-    raise
-
+warnings.filterwarnings('ignore')
 
 class EnhancedContextualAnalyzer:
-    """
-    Analyzer with AI-powered sentiment detection for political bias.
-    
-    Uses DistilBERT for sentiment analysis combined with keyword detection
-    to understand context and determine political stance.
-    """
+    """Analyzer with AI-powered sentiment detection for context."""
     
     def __init__(self, verbose=True):
-        """
-        Initialize the analyzer with models and data.
-        
-        Args:
-            verbose (bool): Whether to print loading messages
-        """
         self.verbose = verbose
-        
         if self.verbose:
-            print("🚀 Loading Enhanced Contextual Bias Analyzer...")
-            print("⏳ Loading NLP models (60-90 seconds on first run)...")
+            print("🚀 Loading Enhanced Contextual Bias Analyzer with AI Sentiment...")
+            print("⏳ Loading NLP models (this may take 60-90 seconds)...")
         
         # Load sentiment model for context analysis
         try:
             self.sentiment_analyzer = pipeline(
                 "sentiment-analysis",
-                model="distilbert-base-uncased-finetuned-sst-2-english",
-                device=-1  # Force CPU mode
+                model="distilbert-base-uncased-finetuned-sst-2-english"
             )
             if self.verbose:
-                print("✅ Sentiment model loaded successfully!")
+                print("✅ Sentiment model loaded!")
         except Exception as e:
-            print(f"⚠️ Warning: Could not load sentiment model: {e}")
+            print(f"⚠️  Warning: {e}")
             self.sentiment_analyzer = None
         
-        # News source bias ratings
+        # Load source ratings
         self.source_ratings = {
             'cnn.com': {'bias': 6.5, 'credibility': 0.75, 'name': 'CNN'},
             'msnbc.com': {'bias': 7.5, 'credibility': 0.70, 'name': 'MSNBC'},
@@ -71,7 +47,7 @@ class EnhancedContextualAnalyzer:
             'bbc.com': {'bias': 5.0, 'credibility': 0.85, 'name': 'BBC'},
         }
         
-        # Left-leaning political concepts
+        # Political keywords (concepts, not stances)
         self.left_concepts = {
             'progressive', 'social justice', 'systemic racism', 'systemic inequality',
             'climate crisis', 'climate emergency', 'wealth inequality', 'income inequality',
@@ -88,7 +64,6 @@ class EnhancedContextualAnalyzer:
             'immigration reform', 'path to citizenship', 'dreamers', 'asylum'
         }
         
-        # Right-leaning political concepts
         self.right_concepts = {
             'traditional values', 'free market', 'limited government', 'small government',
             'second amendment', 'border security', 'law and order', 'back the blue',
@@ -104,36 +79,51 @@ class EnhancedContextualAnalyzer:
             'energy independence', 'oil and gas', 'fracking', 'drill'
         }
         
-        # Negative context indicators
+        # MASSIVELY EXPANDED negative indicator words
         self.negative_indicators = {
+            # Direct opposition
             'ban', 'banned', 'banning', 'prohibit', 'prohibited', 'against', 'oppose',
             'opposed', 'opposing', 'opposition', 'stop', 'stopped', 'end', 'ended',
             'eliminate', 'eliminated', 'remove', 'removed', 'reject', 'rejected',
             'deny', 'denied', 'denying', 'restrict', 'restricted', 'block', 'blocked',
             'prevent', 'prevented', 'preventing', 'illegal', 'unlawful', 'forbidden',
+            
+            # Negative judgment
             'wrong', 'bad', 'harmful', 'dangerous', 'threat', 'threatens', 'threatening',
             'evil', 'terrible', 'horrible', 'awful', 'disgusting', 'unacceptable',
             'immoral', 'unethical', 'corrupt', 'corrupted', 'criminal', 'crime',
-            'should not', 'must not', 'cannot', "can't", "won't", 'never', 'no',
+            
+            # Negation
+            'should not', 'must not', 'cannot', 'can\'t', 'won\'t', 'never', 'no',
             'not', 'anti', 'destroy', 'destroyed', 'destroying', 'destruction',
             'abolish', 'abolished', 'repeal', 'repealed', 'reverse', 'reversed',
             'undo', 'fight against', 'fighting against',
+            
+            # Harm/punishment
             'jail', 'jailed', 'imprison', 'imprisoned', 'arrest', 'arrested',
             'punish', 'punished', 'punishment', 'penalize', 'fine', 'fined',
             'detain', 'detained', 'deport', 'deported', 'execute', 'executed',
             'kill', 'killing', 'death', 'murder',
-            'exclude', 'excluded', 'excluding', 'expel', 'expelled',
-            'kick out', 'get rid of', 'segregate', 'segregated',
+            
+            # Exclusion
+            'exclude', 'excluded', 'excluding', 'ban', 'expel', 'expelled',
+            'kick out', 'get rid of', 'eliminate', 'segregate', 'segregated',
             'separate', 'separated', 'discriminate', 'discrimination',
+            
+            # Restriction
             'limit', 'limited', 'limiting', 'curtail', 'curtailed', 'suppress',
             'suppressed', 'censor', 'censored', 'silence', 'silenced',
+            
+            # Negative emotion
             'hate', 'hated', 'despise', 'despised', 'loathe', 'disgusted',
             'fear', 'scared', 'afraid', 'worried', 'concerned',
+            
+            # Dismissal
             'ridiculous', 'absurd', 'nonsense', 'stupid', 'idiotic', 'foolish',
             'crazy', 'insane', 'delusional'
         }
         
-        # Positive context indicators
+        # Positive indicator words
         self.positive_indicators = {
             'support', 'supports', 'supported', 'supporting', 'promote', 'promotes',
             'promoted', 'promoting', 'advocate', 'advocates', 'advocating', 'defend',
@@ -145,15 +135,11 @@ class EnhancedContextualAnalyzer:
             'should', 'must', 'need to', 'have to', 'right to', 'important', 'essential',
             'necessary', 'crucial', 'vital', 'good', 'great', 'excellent', 'beneficial',
             'positive', 'wonderful', 'amazing', 'love', 'respect', 'honor', 'value',
-            'cherish', 'appreciate', 'welcome', 'accept', 'include'
+            'cherish', 'appreciate', 'welcome', 'accept', 'include', 'embrace'
         }
-        
-        if self.verbose:
-            print(f"📊 Loaded {len(self.left_concepts)} left + {len(self.right_concepts)} right concepts")
-            print("✅ Analyzer ready!")
     
     def _extract_sentences_with_keyword(self, text, keyword):
-        """Extract sentences containing the keyword."""
+        """Extract full sentences containing the keyword."""
         sentences = re.split(r'[.!?]+', text)
         relevant_sentences = []
         
@@ -164,39 +150,39 @@ class EnhancedContextualAnalyzer:
         return relevant_sentences
     
     def _analyze_sentence_sentiment_ai(self, sentence):
-        """Use AI to determine sentence sentiment."""
+        """Use AI model to determine if sentence is positive or negative."""
         if not self.sentiment_analyzer or not sentence:
             return 0.0
         
         try:
-            result = self.sentiment_analyzer(sentence[:512])[0]
+            result = self.sentiment_analyzer(sentence[:512])[0]  # Truncate to model limit
             
+            # Convert to score: negative = -1, positive = +1
             if result['label'] == 'NEGATIVE':
                 return -result['score']
             else:
                 return result['score']
-        except Exception:
+        except:
             return 0.0
     
     def _analyze_keyword_context(self, text, keyword, is_left_concept):
         """
-        Analyze context around a keyword.
-        
-        Returns:
-            tuple: (stance, confidence) where stance is 'support', 'oppose', or 'neutral'
+        Analyze context around a keyword using multiple methods.
+        Returns: 'support', 'oppose', or 'neutral'
         """
+        # Method 1: Get sentences containing the keyword
         sentences = self._extract_sentences_with_keyword(text, keyword)
         
         if not sentences:
             return 'neutral', 0.5
         
-        # Check for explicit positive/negative words
+        # Method 2: Check for explicit positive/negative words
         text_lower = ' '.join(sentences).lower()
         
         negative_count = sum(1 for word in self.negative_indicators if word in text_lower)
         positive_count = sum(1 for word in self.positive_indicators if word in text_lower)
         
-        # Use AI sentiment analysis
+        # Method 3: Use AI sentiment analysis
         ai_sentiments = [self._analyze_sentence_sentiment_ai(s) for s in sentences]
         avg_ai_sentiment = np.mean(ai_sentiments) if ai_sentiments else 0.0
         
@@ -204,6 +190,7 @@ class EnhancedContextualAnalyzer:
         word_score = (positive_count - negative_count) / max(positive_count + negative_count, 1)
         combined_score = (word_score * 0.4) + (avg_ai_sentiment * 0.6)
         
+        # Determine stance
         confidence = abs(combined_score)
         
         if combined_score > 0.2:
@@ -216,7 +203,10 @@ class EnhancedContextualAnalyzer:
     def _contextual_analysis(self, text):
         """Perform full contextual analysis."""
         left_support = 0
+        left_oppose = 0
         right_support = 0
+        right_oppose = 0
+        
         context_notes = []
         left_examples = []
         right_examples = []
@@ -233,11 +223,11 @@ class EnhancedContextualAnalyzer:
                     left_examples.append(f"support for {keyword}")
                     context_notes.append(f"✓ Support for '{keyword}' (left-leaning)")
                 elif stance == 'oppose':
-                    right_support += confidence
+                    right_support += confidence  # Opposition to left = right
                     right_examples.append(f"opposition to {keyword}")
                     context_notes.append(f"✗ Opposition to '{keyword}' (right-leaning)")
                 else:
-                    left_support += confidence * 0.3
+                    left_support += confidence * 0.3  # Weak neutral mention
         
         # Analyze RIGHT concepts
         for keyword in self.right_concepts:
@@ -249,7 +239,7 @@ class EnhancedContextualAnalyzer:
                     right_examples.append(f"support for {keyword}")
                     context_notes.append(f"✓ Support for '{keyword}' (right-leaning)")
                 elif stance == 'oppose':
-                    left_support += confidence
+                    left_support += confidence  # Opposition to right = left
                     left_examples.append(f"opposition to {keyword}")
                     context_notes.append(f"✗ Opposition to '{keyword}' (left-leaning)")
                 else:
@@ -275,15 +265,15 @@ class EnhancedContextualAnalyzer:
                 'source': self._extract_domain(url)
             }
         except Exception as e:
-            return {'error': f"Failed to extract article: {str(e)}"}
+            return {'error': f"Failed to extract: {str(e)}"}
     
     def _extract_domain(self, url):
-        """Extract domain from URL."""
+        """Get domain from URL."""
         match = re.search(r'https?://(?:www\.)?([^/]+)', url)
         return match.group(1) if match else None
     
     def _categorize_bias(self, score):
-        """Categorize bias score into political spectrum."""
+        """Categorize bias score."""
         if score <= 2.0:
             return "Hard Right"
         elif score <= 4.0:
@@ -296,7 +286,7 @@ class EnhancedContextualAnalyzer:
             return "Hard Left"
     
     def _generate_explanation(self, final_bias, analysis, source, source_info):
-        """Generate detailed explanation of the analysis."""
+        """Generate detailed explanation."""
         category = self._categorize_bias(final_bias)
         source_name = source_info.get('name', source or 'User-provided text')
         
@@ -347,25 +337,15 @@ class EnhancedContextualAnalyzer:
         return explanation
     
     def analyze(self, input_content):
-        """
-        Main analysis function.
-        
-        Args:
-            input_content (str): Text or URL to analyze
-            
-        Returns:
-            dict: Analysis results including bias_score, category, explanation, etc.
-        """
+        """Main analysis function with enhanced context detection."""
         is_url = input_content.startswith('http')
         
         if is_url:
             if self.verbose:
-                print("📰 Extracting article from URL...")
+                print("📰 Extracting article...")
             article_data = self.extract_from_url(input_content)
-            
             if 'error' in article_data:
                 return article_data
-            
             text = article_data['text']
             source = article_data.get('source')
             title = article_data.get('title')
@@ -377,7 +357,7 @@ class EnhancedContextualAnalyzer:
         if self.verbose:
             print(f"📊 Analyzing with AI-powered context detection...")
         
-        # Perform contextual analysis
+        # Perform enhanced contextual analysis
         analysis = self._contextual_analysis(text)
         
         left_score = analysis['left_score']
@@ -392,9 +372,7 @@ class EnhancedContextualAnalyzer:
         
         # Get source bias
         source_info = self.source_ratings.get(source, {
-            'bias': 5.0,
-            'credibility': 0.70,
-            'name': source or 'User text'
+            'bias': 5.0, 'credibility': 0.70, 'name': source or 'User text'
         })
         source_bias = source_info['bias']
         credibility = source_info['credibility']
@@ -421,17 +399,15 @@ class EnhancedContextualAnalyzer:
         }
 
 
-# -------------------------------------------------------------------------
-# Test Suite
-# -------------------------------------------------------------------------
+# Test cases
 if __name__ == "__main__":
-    print("\n" + "="*70)
+    print("="*70)
     print("TESTING ENHANCED AI CONTEXT ANALYZER")
     print("="*70)
     
     analyzer = EnhancedContextualAnalyzer()
     
-    # Test 1: Opposition to LGBTQ (should be right-leaning)
+    # Test 1: LGBTQ + jail (your example)
     print("\n" + "="*70)
     print("TEST 1: 'LGBTQ people should be jailed'")
     print("="*70)
@@ -439,9 +415,9 @@ if __name__ == "__main__":
     result1 = analyzer.analyze(test1)
     print(f"\n📊 Score: {result1['bias_score']}/10")
     print(f"📍 Category: {result1['category']}")
-    print(f"📝 Explanation: {result1['explanation'][:150]}...")
+    print(f"Context: {result1['context_notes']}")
     
-    # Test 2: Support for LGBTQ (should be left-leaning)
+    # Test 2: LGBTQ + support
     print("\n" + "="*70)
     print("TEST 2: 'We must support and protect LGBTQ rights'")
     print("="*70)
@@ -449,9 +425,9 @@ if __name__ == "__main__":
     result2 = analyzer.analyze(test2)
     print(f"\n📊 Score: {result2['bias_score']}/10")
     print(f"📍 Category: {result2['category']}")
-    print(f"📝 Explanation: {result2['explanation'][:150]}...")
+    print(f"Context: {result2['context_notes']}")
     
-    # Test 3: Opposition to gun control (should be right-leaning)
+    # Test 3: Gun control + ban
     print("\n" + "="*70)
     print("TEST 3: 'Gun control should be banned'")
     print("="*70)
@@ -459,24 +435,8 @@ if __name__ == "__main__":
     result3 = analyzer.analyze(test3)
     print(f"\n📊 Score: {result3['bias_score']}/10")
     print(f"📍 Category: {result3['category']}")
-    print(f"📝 Explanation: {result3['explanation'][:150]}...")
-    
-    # Test 4: Neutral text
-    print("\n" + "="*70)
-    print("TEST 4: Neutral text")
-    print("="*70)
-    test4 = "The federal budget was announced today with spending on infrastructure."
-    result4 = analyzer.analyze(test4)
-    print(f"\n📊 Score: {result4['bias_score']}/10")
-    print(f"📍 Category: {result4['category']}")
-    print(f"📝 Explanation: {result4['explanation'][:150]}...")
+    print(f"Context: {result3['context_notes']}")
     
     print("\n" + "="*70)
-    print("✅ All tests complete!")
+    print("✅ Enhanced AI context analysis complete!")
     print("="*70)
-    
-    print("\n📋 EXPECTED RESULTS:")
-    print("Test 1: Should score 0-3 (Hard Right) ✓")
-    print("Test 2: Should score 7-10 (Moderate/Hard Left) ✓")
-    print("Test 3: Should score 0-4 (Right-leaning) ✓")
-    print("Test 4: Should score 4-6 (Centre) ✓")
