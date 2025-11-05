@@ -31,7 +31,7 @@ class EnhancedContextualAnalyzer:
             if self.verbose:
                 print("✅ Sentiment model loaded!")
         except Exception as e:
-            print(f"⚠️  Warning: {e}")
+            print(f"⚠️ Warning: {e}")
             self.sentiment_analyzer = None
         
         # Load source ratings
@@ -50,33 +50,61 @@ class EnhancedContextualAnalyzer:
         # Political keywords (concepts, not stances)
         self.left_concepts = {
             'progressive', 'social justice', 'systemic racism', 'systemic inequality',
-            'climate crisis', 'climate emergency', 'wealth inequality', 'income inequality',
+            'climate crisis', 'climate emergency', 'climate change', 'global warming',
+            'climate action', 'carbon emissions', 'greenhouse gas',
+            'wealth inequality', 'income inequality', 'economic inequality',
             'workers rights', 'labor rights', 'union', 'unionize', 'living wage',
             'universal healthcare', 'medicare for all', 'single payer', 'public option',
-            'affordable housing', 'rent control', 'minimum wage', 'wage gap',
+            'affordable housing', 'rent control', 'minimum wage', 'wage gap', 'living wage',
             'corporate greed', 'corporate accountability', 'tax the rich', 'fair share',
+            'wealth tax', 'corporate taxes', 'tax justice',
             'reproductive rights', 'abortion rights', 'pro-choice', 'bodily autonomy',
+            'womens rights', 'gender equality', 'pay equity',
             'lgbtq', 'lgbtqia', 'transgender rights', 'gender identity', 'gay rights',
             'marriage equality', 'discrimination', 'marginalized', 'diversity',
-            'inclusion', 'equity', 'racial justice', 'police brutality',
+            'inclusion', 'equity', 'racial justice', 'police brutality', 'police reform',
+            'criminal justice reform', 'mass incarceration', 'prison reform',
             'gun violence', 'gun safety', 'gun control', 'assault weapons ban',
-            'renewable energy', 'green energy', 'environmental justice',
-            'immigration reform', 'path to citizenship', 'dreamers', 'asylum'
+            'background checks', 'gun reform',
+            'renewable energy', 'green energy', 'environmental justice', 'solar power',
+            'wind power', 'clean energy', 'sustainable',
+            'immigration reform', 'path to citizenship', 'dreamers', 'asylum',
+            'refugee', 'undocumented', 'immigrant rights',
+            'voting rights', 'voter suppression', 'gerrymandering', 'electoral reform',
+            'healthcare access', 'public education', 'student debt', 'tuition free',
+            'social safety net', 'welfare', 'food stamps', 'medicaid expansion',
+            'paid family leave', 'childcare', 'universal basic income',
+            'anti-discrimination', 'hate crime', 'white supremacy', 'institutional racism'
         }
         
         self.right_concepts = {
             'traditional values', 'free market', 'limited government', 'small government',
-            'second amendment', 'border security', 'law and order', 'back the blue',
-            'pro-life', 'tax cuts', 'deregulation', 'personal responsibility',
-            'fiscal responsibility', 'job creators', 'small business', 'capitalism',
+            'second amendment', '2nd amendment', 'gun rights', 'right to bear arms',
+            'border security', 'law and order', 'back the blue', 'support police',
+            'pro-life', 'unborn', 'right to life', 'sanctity of life',
+            'tax cuts', 'tax relief', 'lower taxes', 'deregulation', 'personal responsibility',
+            'fiscal responsibility', 'fiscal conservative', 'job creators', 'small business', 
+            'capitalism', 'free enterprise', 'market economy',
             'religious freedom', 'religious liberty', 'constitutional rights',
-            'parental rights', 'states rights', 'individual liberty', 'founding fathers',
+            'parental rights', 'school choice', 'states rights', 'individual liberty', 
+            'founding fathers', 'constitution',
             'traditional marriage', 'family values', 'biological sex', 'woke',
-            'cancel culture', 'critical race theory', 'illegal immigration',
+            'cancel culture', 'critical race theory', 'crt', 'indoctrination',
+            'illegal immigration', 'illegal aliens', 'border crisis',
             'secure the border', 'border wall', 'national security', 'strong military',
-            'american values', 'patriotic', 'america first', 'government overreach',
-            'government waste', 'balanced budget', 'entitlement reform', 'welfare reform',
-            'energy independence', 'oil and gas', 'fracking', 'drill'
+            'military strength', 'defense spending',
+            'american values', 'patriotic', 'patriotism', 'america first', 
+            'government overreach', 'government waste', 'bureaucracy',
+            'balanced budget', 'national debt', 'deficit reduction',
+            'entitlement reform', 'welfare reform', 'food stamp reform',
+            'energy independence', 'oil and gas', 'fracking', 'drill',
+            'fossil fuels', 'coal', 'natural gas',
+            'law and order', 'tough on crime', 'crime prevention',
+            'voter id', 'election integrity', 'election security',
+            'school prayer', 'religious values', 'judeo-christian',
+            'pro-business', 'economic growth', 'job growth',
+            'self-reliance', 'rugged individualism', 'bootstraps',
+            'sovereign', 'sovereignty', 'nationalism'
         }
         
         # MASSIVELY EXPANDED negative indicator words
@@ -94,7 +122,7 @@ class EnhancedContextualAnalyzer:
             'immoral', 'unethical', 'corrupt', 'corrupted', 'criminal', 'crime',
             
             # Negation
-            'should not', 'must not', 'cannot', 'can\'t', 'won\'t', 'never', 'no',
+            'should not', 'must not', 'cannot', "can't", "won't", 'never', 'no',
             'not', 'anti', 'destroy', 'destroyed', 'destroying', 'destruction',
             'abolish', 'abolished', 'repeal', 'repealed', 'reverse', 'reversed',
             'undo', 'fight against', 'fighting against',
@@ -106,9 +134,9 @@ class EnhancedContextualAnalyzer:
             'kill', 'killing', 'death', 'murder',
             
             # Exclusion
-            'exclude', 'excluded', 'excluding', 'ban', 'expel', 'expelled',
-            'kick out', 'get rid of', 'eliminate', 'segregate', 'segregated',
-            'separate', 'separated', 'discriminate', 'discrimination',
+            'exclude', 'excluded', 'excluding', 'expel', 'expelled',
+            'kick out', 'get rid of', 'segregate', 'segregated',
+            'separate', 'separated', 'discriminate',
             
             # Restriction
             'limit', 'limited', 'limiting', 'curtail', 'curtailed', 'suppress',
@@ -135,17 +163,26 @@ class EnhancedContextualAnalyzer:
             'should', 'must', 'need to', 'have to', 'right to', 'important', 'essential',
             'necessary', 'crucial', 'vital', 'good', 'great', 'excellent', 'beneficial',
             'positive', 'wonderful', 'amazing', 'love', 'respect', 'honor', 'value',
-            'cherish', 'appreciate', 'welcome', 'accept', 'include', 'embrace'
+            'cherish', 'appreciate', 'welcome', 'accept', 'include'
         }
     
     def _extract_sentences_with_keyword(self, text, keyword):
         """Extract full sentences containing the keyword."""
-        sentences = re.split(r'[.!?]+', text)
+        # Better sentence splitting that handles more cases
+        sentences = re.split(r'(?<=[.!?])\s+', text)
         relevant_sentences = []
         
         for sentence in sentences:
+            sentence = sentence.strip()
+            # Skip empty or very short sentences
+            if len(sentence) < 10:
+                continue
             if keyword.lower() in sentence.lower():
-                relevant_sentences.append(sentence.strip())
+                # Clean up the sentence
+                sentence = re.sub(r'\s+', ' ', sentence)  # Normalize whitespace
+                relevant_sentences.append(sentence)
+                if self.verbose and len(relevant_sentences) == 1:
+                    print(f"      📝 Example: {sentence[:100]}...")
         
         return relevant_sentences
     
@@ -168,37 +205,76 @@ class EnhancedContextualAnalyzer:
     def _analyze_keyword_context(self, text, keyword, is_left_concept):
         """
         Analyze context around a keyword using multiple methods.
-        Returns: 'support', 'oppose', or 'neutral'
+        Returns: 'support', 'oppose', or 'neutral', confidence, and example sentences
         """
         # Method 1: Get sentences containing the keyword
         sentences = self._extract_sentences_with_keyword(text, keyword)
         
         if not sentences:
-            return 'neutral', 0.5
+            if self.verbose:
+                print(f"      ⚠️ Keyword '{keyword}' found but no sentences extracted")
+            return 'neutral', 0.5, []
         
-        # Method 2: Check for explicit positive/negative words
+        if self.verbose:
+            print(f"      ✓ Extracted {len(sentences)} sentence(s) for '{keyword}'")
+        
+        # Method 2: Check for explicit positive/negative words in surrounding context
         text_lower = ' '.join(sentences).lower()
         
-        negative_count = sum(1 for word in self.negative_indicators if word in text_lower)
-        positive_count = sum(1 for word in self.positive_indicators if word in text_lower)
+        # Count indicators with position weighting (closer to keyword = more weight)
+        negative_matches = []
+        positive_matches = []
         
-        # Method 3: Use AI sentiment analysis
-        ai_sentiments = [self._analyze_sentence_sentiment_ai(s) for s in sentences]
+        for word in self.negative_indicators:
+            if word in text_lower:
+                negative_matches.append(word)
+        
+        for word in self.positive_indicators:
+            if word in text_lower:
+                positive_matches.append(word)
+        
+        negative_count = len(negative_matches)
+        positive_count = len(positive_matches)
+        
+        # Method 3: Use AI sentiment analysis on each sentence
+        ai_sentiments = []
+        for s in sentences:
+            sentiment = self._analyze_sentence_sentiment_ai(s)
+            ai_sentiments.append(sentiment)
+        
         avg_ai_sentiment = np.mean(ai_sentiments) if ai_sentiments else 0.0
         
-        # Combine methods (weighted)
+        # Method 4: Check for negation phrases near the keyword
+        negation_phrases = ['not', 'never', 'no', "don't", "doesn't", 'without', 'against', 'oppose', 'reject']
+        has_nearby_negation = any(neg in text_lower for neg in negation_phrases)
+        
+        # Combine methods with weighted scoring
+        # Word indicators: 30%, AI sentiment: 50%, Negation context: 20%
         word_score = (positive_count - negative_count) / max(positive_count + negative_count, 1)
-        combined_score = (word_score * 0.4) + (avg_ai_sentiment * 0.6)
         
-        # Determine stance
-        confidence = abs(combined_score)
+        # Apply negation modifier
+        negation_modifier = -0.3 if has_nearby_negation and positive_count > negative_count else 0
         
-        if combined_score > 0.2:
-            return 'support', confidence
-        elif combined_score < -0.2:
-            return 'oppose', confidence
+        combined_score = (word_score * 0.3) + (avg_ai_sentiment * 0.5) + negation_modifier
+        
+        # Determine stance with adjusted thresholds
+        confidence = min(abs(combined_score), 1.0)  # Cap at 1.0
+        
+        if self.verbose:
+            print(f"      📊 Word score: {word_score:.2f}, AI sentiment: {avg_ai_sentiment:.2f}")
+            print(f"      📊 Combined: {combined_score:.2f}, Confidence: {confidence:.2f}")
+            if negative_matches:
+                print(f"      🔍 Negative indicators: {', '.join(negative_matches[:3])}")
+            if positive_matches:
+                print(f"      🔍 Positive indicators: {', '.join(positive_matches[:3])}")
+        
+        # More nuanced threshold for stance determination
+        if combined_score > 0.15:  # Lower threshold for support
+            return 'support', confidence, sentences[:3]
+        elif combined_score < -0.15:  # Lower threshold for oppose
+            return 'oppose', confidence, sentences[:3]
         else:
-            return 'neutral', confidence
+            return 'neutral', confidence * 0.5, sentences[:2]  # Neutral gets lower confidence
     
     def _contextual_analysis(self, text):
         """Perform full contextual analysis."""
@@ -210,38 +286,68 @@ class EnhancedContextualAnalyzer:
         context_notes = []
         left_examples = []
         right_examples = []
+        detailed_findings = []  # NEW: Store detailed findings with examples
         
         text_lower = text.lower()
         
         # Analyze LEFT concepts
         for keyword in self.left_concepts:
             if keyword in text_lower:
-                stance, confidence = self._analyze_keyword_context(text, keyword, True)
+                stance, confidence, example_sentences = self._analyze_keyword_context(text, keyword, True)
                 
                 if stance == 'support':
                     left_support += confidence
                     left_examples.append(f"support for {keyword}")
                     context_notes.append(f"✓ Support for '{keyword}' (left-leaning)")
+                    # Add detailed finding
+                    if example_sentences:
+                        detailed_findings.append({
+                            'term': keyword,
+                            'stance': 'support',
+                            'direction': 'left',
+                            'example': example_sentences[0][:150] + '...' if len(example_sentences[0]) > 150 else example_sentences[0]
+                        })
                 elif stance == 'oppose':
                     right_support += confidence  # Opposition to left = right
                     right_examples.append(f"opposition to {keyword}")
                     context_notes.append(f"✗ Opposition to '{keyword}' (right-leaning)")
+                    if example_sentences:
+                        detailed_findings.append({
+                            'term': keyword,
+                            'stance': 'oppose',
+                            'direction': 'right',
+                            'example': example_sentences[0][:150] + '...' if len(example_sentences[0]) > 150 else example_sentences[0]
+                        })
                 else:
                     left_support += confidence * 0.3  # Weak neutral mention
         
         # Analyze RIGHT concepts
         for keyword in self.right_concepts:
             if keyword in text_lower:
-                stance, confidence = self._analyze_keyword_context(text, keyword, False)
+                stance, confidence, example_sentences = self._analyze_keyword_context(text, keyword, False)
                 
                 if stance == 'support':
                     right_support += confidence
                     right_examples.append(f"support for {keyword}")
                     context_notes.append(f"✓ Support for '{keyword}' (right-leaning)")
+                    if example_sentences:
+                        detailed_findings.append({
+                            'term': keyword,
+                            'stance': 'support',
+                            'direction': 'right',
+                            'example': example_sentences[0][:150] + '...' if len(example_sentences[0]) > 150 else example_sentences[0]
+                        })
                 elif stance == 'oppose':
                     left_support += confidence  # Opposition to right = left
                     left_examples.append(f"opposition to {keyword}")
                     context_notes.append(f"✗ Opposition to '{keyword}' (left-leaning)")
+                    if example_sentences:
+                        detailed_findings.append({
+                            'term': keyword,
+                            'stance': 'oppose',
+                            'direction': 'left',
+                            'example': example_sentences[0][:150] + '...' if len(example_sentences[0]) > 150 else example_sentences[0]
+                        })
                 else:
                     right_support += confidence * 0.3
         
@@ -250,21 +356,34 @@ class EnhancedContextualAnalyzer:
             'right_score': right_support,
             'left_examples': left_examples[:5],
             'right_examples': right_examples[:5],
-            'context_notes': context_notes[:5]
+            'context_notes': context_notes[:10],
+            'detailed_findings': detailed_findings[:8]  # NEW: Return detailed findings
         }
     
     def extract_from_url(self, url):
         """Extract article from URL."""
         try:
+            if self.verbose:
+                print(f"🌐 Downloading article from: {url}")
+            
             article = Article(url)
             article.download()
             article.parse()
+            
+            text = article.text
+            if self.verbose:
+                print(f"✅ Article extracted: {len(text)} characters")
+                print(f"📰 Title: {article.title}")
+                print(f"🔤 First 200 chars: {text[:200]}...")
+            
             return {
-                'text': article.text,
+                'text': text,
                 'title': article.title,
                 'source': self._extract_domain(url)
             }
         except Exception as e:
+            if self.verbose:
+                print(f"❌ Extraction error: {str(e)}")
             return {'error': f"Failed to extract: {str(e)}"}
     
     def _extract_domain(self, url):
@@ -285,54 +404,67 @@ class EnhancedContextualAnalyzer:
         else:
             return "Hard Left"
     
-    def _generate_explanation(self, final_bias, analysis, source, source_info):
-        """Generate detailed explanation."""
+    def _generate_explanation(self, final_bias, analysis, source, source_info, indicator_bias=5.0):
+        """Generate detailed explanation with specific examples."""
         category = self._categorize_bias(final_bias)
         source_name = source_info.get('name', source or 'User-provided text')
         
         left_score = analysis['left_score']
         right_score = analysis['right_score']
-        context_notes = analysis['context_notes']
+        detailed_findings = analysis.get('detailed_findings', [])
         
         explanation = f"This content received a bias score of {final_bias:.1f} out of 10, categorizing it as '{category}'. "
         
+        # Add specific findings with examples
         total = left_score + right_score
         if total > 0:
             if left_score > right_score:
                 ratio = left_score / right_score if right_score > 0 else left_score
-                explanation += f"The AI-powered contextual analysis identified {left_score:.1f} points of left-leaning positioning compared to {right_score:.1f} points of right-leaning positioning (ratio: {ratio:.1f}:1). "
+                explanation += f"The AI detected {left_score:.1f} points of left-leaning positioning compared to {right_score:.1f} points of right-leaning positioning (ratio: {ratio:.1f}:1). "
             elif right_score > left_score:
                 ratio = right_score / left_score if left_score > 0 else right_score
-                explanation += f"The AI-powered contextual analysis identified {right_score:.1f} points of right-leaning positioning compared to {left_score:.1f} points of left-leaning positioning (ratio: {ratio:.1f}:1). "
+                explanation += f"The AI detected {right_score:.1f} points of right-leaning positioning compared to {left_score:.1f} points of left-leaning positioning (ratio: {ratio:.1f}:1). "
             else:
-                explanation += "The analysis found balanced political positioning. "
+                explanation += "The analysis found relatively balanced political positioning. "
         
-        if context_notes:
-            explanation += "Key contextual findings: " + "; ".join(context_notes[:3]) + ". "
+        # NEW: Add specific term examples - ALWAYS show if we have them
+        if detailed_findings and len(detailed_findings) > 0:
+            explanation += "\n\n📌 Specific Political Terms Identified:\n"
+            for i, finding in enumerate(detailed_findings[:6], 1):
+                stance_verb = "SUPPORTS" if finding['stance'] == 'support' else "OPPOSES"
+                direction_emoji = "🔵" if finding['direction'] == 'left' else "🔴"
+                explanation += f"\n{direction_emoji} {i}. {stance_verb} '{finding['term']}'\n   Quote: \"{finding['example']}\"\n"
+        elif total > 0:
+            # Fallback if no detailed findings but we detected terms
+            explanation += "\n\n⚠️ Political language detected but specific examples could not be extracted."
         
+        # Source information
         if source and source_name not in ['User-provided text', 'User text']:
             source_bias = source_info.get('bias', 5.0)
             credibility = source_info.get('credibility', 0.70)
             
+            explanation += f"\n\nSource Analysis: "
             if source_bias > 6.5:
-                explanation += f"The source '{source_name}' has a left-leaning editorial perspective. "
+                explanation += f"'{source_name}' has a known left-leaning editorial perspective. "
             elif source_bias < 3.5:
-                explanation += f"The source '{source_name}' has a right-leaning editorial perspective. "
+                explanation += f"'{source_name}' has a known right-leaning editorial perspective. "
             else:
-                explanation += f"The source '{source_name}' is considered relatively centrist. "
+                explanation += f"'{source_name}' is considered relatively centrist. "
             
-            explanation += f"Credibility: {credibility:.0%}. "
+            explanation += f"Credibility rating: {credibility:.0%}. "
         
+        # Overall assessment
+        explanation += "\n\nOverall Assessment: "
         if final_bias >= 7.5:
-            explanation += "Overall, this exhibits progressive political framing emphasizing social equity and reform."
+            explanation += "This content exhibits strong progressive framing, emphasizing social equity, government intervention, and systemic reform."
         elif final_bias >= 6.0:
-            explanation += "Overall, this shows moderate liberal positioning with some balance."
+            explanation += "This content shows moderate liberal positioning with emphasis on social programs and regulatory oversight."
         elif final_bias >= 4.5:
-            explanation += "Overall, this demonstrates a centrist approach."
+            explanation += "This content demonstrates a centrist or balanced approach to political issues."
         elif final_bias >= 2.5:
-            explanation += "Overall, this shows moderate conservative positioning."
+            explanation += "This content shows moderate conservative positioning with emphasis on traditional values and limited government."
         else:
-            explanation += "Overall, this exhibits conservative framing emphasizing individual liberty and limited government."
+            explanation += "This content exhibits strong conservative framing, emphasizing individual liberty, free markets, and traditional institutions."
         
         return explanation
     
@@ -356,9 +488,13 @@ class EnhancedContextualAnalyzer:
         
         if self.verbose:
             print(f"📊 Analyzing with AI-powered context detection...")
+            print(f"📄 Text length: {len(text)} characters")
         
         # Perform enhanced contextual analysis
         analysis = self._contextual_analysis(text)
+        
+        if self.verbose:
+            print(f"🔍 Found {len(analysis.get('detailed_findings', []))} detailed term matches")
         
         left_score = analysis['left_score']
         right_score = analysis['right_score']
@@ -381,7 +517,7 @@ class EnhancedContextualAnalyzer:
         final_bias = (indicator_bias * 0.6) + (source_bias * 0.4)
         
         category = self._categorize_bias(final_bias)
-        explanation = self._generate_explanation(final_bias, analysis, source, source_info)
+        explanation = self._generate_explanation(final_bias, analysis, source, source_info, indicator_bias)
         
         if self.verbose:
             print("✅ AI contextual analysis complete!")
@@ -395,7 +531,8 @@ class EnhancedContextualAnalyzer:
             'title': title,
             'left_indicators': round(left_score, 1),
             'right_indicators': round(right_score, 1),
-            'context_notes': analysis['context_notes']
+            'context_notes': analysis['context_notes'],
+            'detailed_findings': analysis.get('detailed_findings', [])  # NEW
         }
 
 
@@ -407,36 +544,32 @@ if __name__ == "__main__":
     
     analyzer = EnhancedContextualAnalyzer()
     
-    # Test 1: LGBTQ + jail (your example)
+    # Test 1: Climate change support
     print("\n" + "="*70)
-    print("TEST 1: 'LGBTQ people should be jailed'")
+    print("TEST 1: Climate change article")
     print("="*70)
-    test1 = "LGBTQ people should be jailed"
+    test1 = """Climate change is an urgent crisis that requires immediate action. 
+    We must invest in renewable energy and implement strong environmental regulations 
+    to protect our planet for future generations. The wealthy must pay their fair share 
+    to fund green energy initiatives."""
     result1 = analyzer.analyze(test1)
     print(f"\n📊 Score: {result1['bias_score']}/10")
-    print(f"📍 Category: {result1['category']}")
-    print(f"Context: {result1['context_notes']}")
+    print(f"📁 Category: {result1['category']}")
+    print(f"📝 Explanation:\n{result1['explanation']}")
     
-    # Test 2: LGBTQ + support
+    # Test 2: Conservative viewpoint
     print("\n" + "="*70)
-    print("TEST 2: 'We must support and protect LGBTQ rights'")
+    print("TEST 2: Conservative article")
     print("="*70)
-    test2 = "We must support and protect LGBTQ rights for everyone"
+    test2 = """Traditional values and limited government are essential for protecting 
+    individual liberty. We must secure our borders, support our police, and reduce 
+    government overreach. Free markets and personal responsibility are the foundation 
+    of prosperity."""
     result2 = analyzer.analyze(test2)
     print(f"\n📊 Score: {result2['bias_score']}/10")
-    print(f"📍 Category: {result2['category']}")
-    print(f"Context: {result2['context_notes']}")
-    
-    # Test 3: Gun control + ban
-    print("\n" + "="*70)
-    print("TEST 3: 'Gun control should be banned'")
-    print("="*70)
-    test3 = "Gun control should be banned and eliminated"
-    result3 = analyzer.analyze(test3)
-    print(f"\n📊 Score: {result3['bias_score']}/10")
-    print(f"📍 Category: {result3['category']}")
-    print(f"Context: {result3['context_notes']}")
+    print(f"📁 Category: {result2['category']}")
+    print(f"📝 Explanation:\n{result2['explanation']}")
     
     print("\n" + "="*70)
-    print("✅ Enhanced AI context analysis complete!")
+    print("✅ Testing complete!")
     print("="*70)

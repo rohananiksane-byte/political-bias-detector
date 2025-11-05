@@ -1,11 +1,10 @@
 """
-Flask API for Political Bias Detection
-Memory-optimized for Render (512MB free instance)
+Flask API for Bias Detection
+Provides REST API endpoints for the bias analyzer.
 """
 
 import os
 import datetime
-import gc
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from bias_analyzer import EnhancedContextualAnalyzer as BiasAnalyzer
@@ -13,32 +12,28 @@ import logging
 
 app = Flask(__name__)
 
-# Enable CORS for all origins
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+# Enable CORS for all origins (allows any website to call your API)
+CORS(app, resources={
+    r"/api/*": {
+        "origins": "*",  # Allow all origins for public API
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"]
+    }
+})
 
-# Logging setup
+# Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Analyzer global (lazy-loaded)
+# Initialize analyzer
 analyzer = None
 
-# Max allowed content length to prevent memory blowup
-MAX_CONTENT_LENGTH = 3000  # characters
-
 def get_analyzer():
-    """Lazy-load the analyzer to save memory."""
     global analyzer
     if analyzer is None:
         logger.info("Initializing analyzer...")
-        try:
-            # Optionally, switch to a smaller model to reduce memory
-            # analyzer = BiasAnalyzer(model_name='distilbert-base-uncased-finetuned-sst-2', verbose=False)
-            analyzer = BiasAnalyzer(verbose=False)
-            logger.info("Analyzer initialized successfully")
-        except Exception as e:
-            logger.error(f"Failed to initialize analyzer: {str(e)}")
-            raise
+        analyzer = BiasAnalyzer(verbose=False)
+        logger.info("Analyzer initialized successfully")
     return analyzer
 
 @app.route('/')
@@ -52,11 +47,10 @@ def home():
             '/api/analyze': 'POST - Analyze text or URL',
             '/api/health': 'GET - Check API status'
         },
-        'documentation': 'https://github.com/rohananiksane-byte/political-bias-detector'
+        'documentation': 'https://github.com/YOUR-USERNAME/political-bias-detector'
     })
 
 @app.route('/api/health')
-@app.route('/health')
 def health():
     """Health check endpoint."""
     return jsonify({
@@ -65,71 +59,77 @@ def health():
         'analyzer_loaded': analyzer is not None
     })
 
-@app.route('/api/analyze', methods=['POST', 'OPTIONS'])
+@app.route('/api/analyze', methods=['POST'])
 def analyze():
-    """Analyze content for political bias."""
-    if request.method == 'OPTIONS':
-        return '', 204
-
+    """
+    Analyze content for political bias.
+    
+    Request body:
+    {
+        "content": "text or URL to analyze"
+    }
+    """
     try:
         data = request.get_json()
+        
         if not data or 'content' not in data:
-            return jsonify({'success': False, 'error': 'Missing content field'}), 400
-
-        content = data['content'].strip()
-        if len(content) == 0:
-            return jsonify({'success': False, 'error': 'Content cannot be empty'}), 400
-
-        # Enforce max content length
-        if len(content) > MAX_CONTENT_LENGTH:
             return jsonify({
                 'success': False,
-                'error': f'Content too long ({len(content)} chars). Max allowed is {MAX_CONTENT_LENGTH}.'
+                'error': 'Missing content field'
             }), 400
-
-        # Lazy-load analyzer
-        analyzer_instance = get_analyzer()
-
-        # Run analysis
+        
+        content = data['content']
+        
+        if not content or len(content.strip()) == 0:
+            return jsonify({
+                'success': False,
+                'error': 'Content cannot be empty'
+            }), 400
+        
+        # Get analyzer and run analysis
         logger.info(f"Analyzing content (length: {len(content)} chars)")
-        result = analyzer_instance.analyze(content)
-
+        analyzer = get_analyzer()
+        result = analyzer.analyze(content)
+        
         if 'error' in result:
-            return jsonify({'success': False, 'error': result['error']}), 400
-
+            return jsonify({
+                'success': False,
+                'error': result['error']
+            }), 400
+        
         logger.info(f"Analysis complete - Score: {result.get('bias_score')}")
-
-        # Clean up memory
-        gc.collect()
-
-        return jsonify({'success': True, 'data': result}), 200
-
+        
+        return jsonify({
+            'success': True,
+            'data': result
+        }), 200
+        
     except Exception as e:
-        logger.error(f"Error during analysis: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': 'An error occurred during analysis. Please try again.'}), 500
-
-@app.errorhandler(404)
-def not_found(error):
-    return jsonify({
-        'success': False,
-        'error': 'Endpoint not found',
-        'available_endpoints': ['/api/analyze', '/api/health', '/health', '/']
-    }), 404
-
-@app.errorhandler(500)
-def internal_error(error):
-    logger.error(f"Internal server error: {str(error)}", exc_info=True)
-    return jsonify({'success': False, 'error': 'Internal server error'}), 500
+        logger.error(f"Error during analysis: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'An error occurred during analysis. Please try again.'
+        }), 500
 
 if __name__ == '__main__':
+    # Get port from environment variable (for Render) or default to 5000
     port = int(os.environ.get('PORT', 5000))
-    debug_mode = not bool(os.environ.get('PORT'))
-
+    
     print("\n" + "="*60)
     print("🚀 STARTING BIAS DETECTION API")
     print("="*60)
     print(f"📍 API running on port: {port}")
-    print("🌐 PRODUCTION mode" if os.environ.get('PORT') else "💻 LOCAL mode")
+    
+    # Check if running locally or in production
+    if os.environ.get('PORT'):
+        print("🌐 Running in PRODUCTION mode (cloud deployment)")
+    else:
+        print("💻 Running in LOCAL mode")
+        print("📖 Visit: http://localhost:5000")
+    
+    print("\nPress Ctrl+C to stop the server")
     print("="*60 + "\n")
-
+    
+    # Run with appropriate settings for production vs local
+    debug_mode = not bool(os.environ.get('PORT'))  # Debug only in local mode
     app.run(debug=debug_mode, host='0.0.0.0', port=port)
